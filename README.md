@@ -33,7 +33,7 @@ StreamYield is a **yield-streaming DeFi protocol** where users deposit ERC20 tok
 | **OwnershipFacet**    | [`0xF5a901e39f147A28F8849b6CB93DA4e9668b1e04`](https://arbiscan.io/address/0xF5a901e39f147A28F8849b6CB93DA4e9668b1e04) | ✅ Verified |
 
 **Network:** Arbitrum One (Chain ID: 42161)  
-**Frontend:** [token-streaming-yield.vercel.app](https://token-streaming-yield.vercel.app)
+**Frontend:** [token-streaming-yield.vercel.app](https://token-streaming-yield-27h2.vercel.app/)
 
 ---
 
