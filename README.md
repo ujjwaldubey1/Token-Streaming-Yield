@@ -135,7 +135,7 @@ After 1 year: 1000 + 50 = 1050 USDC ✅
 
 ### **Using the Frontend**
 
-1. **Visit:** [token-streaming-yield.vercel.app](https://token-streaming-yield.vercel.app)
+1. **Visit:** [token-streaming-yield.vercel.app](https://token-streaming-yield-27h2.vercel.app/)
 2. **Connect Wallet** - Click "Connect Wallet" → Approve MetaMask
 3. **Switch to Arbitrum** - Ensure MetaMask is on Arbitrum One network
 4. **Deposit:**
@@ -404,41 +404,3 @@ struct Stream {
 - ✅ **Frontend Deployed** - Cyberpunk UI live on Vercel
 - ✅ **Total Cost: $0.28** - Ultra-efficient deployment
 - ✅ **Zero Gas for Yield** - Lazy evaluation innovation
-
----
-
-## 🚧 **Future Enhancements**
-
-- [ ] Integration with Aave/Compound for real yield sources
-- [ ] Governance facet (DAO voting)
-- [ ] Rewards facet (token emissions)
-- [ ] Multi-token pools
-- [ ] Yield compounding option
-- [ ] Professional security audit
-
----
-
-## 📄 **License**
-
-MIT License - See LICENSE file for details
-
----
-
-## 👥 **Team**
-
-Built for **Blokathon** - Demonstrating advanced DeFi architecture with Diamond Proxy pattern.
-
----
-
-## ⚠️ **Disclaimer**
-
-This is a demonstration project. For production use:
-
-- Conduct professional security audit
-- Implement yield funding mechanism
-- Add rate limits and safety checks
-- Consider gradual rollout with TVL limits
-
----
-
-**🎯 For Judges: All contracts are live, verified, and testable on Arbitrum mainnet. Frontend is deployed and functional. See `test/StreamYieldFacetTest.t.sol` for comprehensive test coverage.**
