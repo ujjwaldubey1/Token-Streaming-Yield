@@ -22,8 +22,11 @@ import {StreamYieldStorage} from "./StreamYieldStorage.sol";
 import {StreamYieldBase} from "./StreamYieldBase.sol";
 import {IStreamYield} from "./IStreamYield.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract StreamYieldFacet is Facet, StreamYieldBase, IStreamYield {
+    using SafeERC20 for IERC20;
+
     event Deposit(address indexed user, address indexed token, uint256 amount);
     event Withdraw(address indexed user, address indexed token, uint256 amount);
     event LockSet(address indexed user, address indexed token, uint256 expiry);
@@ -32,7 +35,7 @@ contract StreamYieldFacet is Facet, StreamYieldBase, IStreamYield {
         require(token != address(0), "Invalid token");
         require(amount > 0, "Amount must be greater than 0");
 
-        IERC20(token).transferFrom(msg.sender, address(this), amount);
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
 
         StreamYieldStorage.Stream storage s = StreamYieldStorage.layout().streams[msg.sender][token];
 
@@ -59,17 +62,24 @@ contract StreamYieldFacet is Facet, StreamYieldBase, IStreamYield {
 
         StreamYieldStorage.Stream storage s = StreamYieldStorage.layout().streams[msg.sender][token];
 
-        _applyYield(s);
-
-        require(s.principal >= amount, "Insufficient balance");
-
         if (s.locked && block.timestamp < s.lockExpiry) {
             revert("Deposit is locked");
         }
 
-        s.principal -= amount;
+        require(s.principal >= amount, "Insufficient balance");
 
-        IERC20(token).transfer(msg.sender, amount);
+        s.principal -= amount;
+        
+        if (s.principal == 0) {
+            s.lastUpdated = 0;
+            s.locked = false;
+            s.lockExpiry = 0;
+            s.aprBps = 0;
+        } else {
+            s.lastUpdated = block.timestamp;
+        }
+
+        IERC20(token).safeTransfer(msg.sender, amount);
 
         emit Withdraw(msg.sender, token, amount);
     }

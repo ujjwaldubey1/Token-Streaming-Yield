@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {console} from "forge-std/console.sol";
 
 import {Diamond} from "../src/Diamond.sol";
 import {IDiamondCut} from "../src/facets/baseFacets/cut/IDiamondCut.sol";
@@ -14,9 +13,6 @@ import {IERC173} from "../src/interfaces/IERC173.sol";
 import {IERC165} from "../src/interfaces/IERC165.sol";
 
 import {StreamYieldFacet} from "../src/facets/utilityFacets/StreamYieldFacet.sol";
-import {StreamYieldStorage} from "../src/facets/utilityFacets/StreamYieldStorage.sol";
-import {StreamYieldBase} from "../src/facets/utilityFacets/StreamYieldBase.sol";
-import {IStreamYield} from "../src/facets/utilityFacets/IStreamYield.sol";
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
@@ -215,13 +211,6 @@ contract StreamYieldFacetTest is Test {
 
         // Warp forward 365 days
         vm.warp(block.timestamp + 365 days);
-
-        // Get balance before withdrawal
-        (bool success2, bytes memory data) =
-            address(diamond).call(abi.encodeWithSelector(StreamYieldFacet.getBalance.selector, user1, address(token)));
-        assertTrue(success2, "GetBalance failed");
-
-        uint256 balanceBeforeWithdraw = abi.decode(data, (uint256));
 
         uint256 tokenBalanceBefore = token.balanceOf(user1);
 
