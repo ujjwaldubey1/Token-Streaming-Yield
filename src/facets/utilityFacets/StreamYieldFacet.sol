@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.0;
 
 /*###############################################################################
 
@@ -9,7 +9,7 @@ pragma solidity ^0.8.20;
     @dev This facet provides a yield-streaming system where users can deposit tokens
          and earn yield continuously based on time elapsed
 
-    ▗▄▄▖ ▗▖    ▗▄▖ ▗▖ ▗▖     ▗▄▄▖ ▗▄▖ ▗▄▄▖▗▄▄▄▖▗▄▄▄▖▗▄▖ ▗▖       ▗▄▄▄  ▗▄▖  ▗▄▖ 
+    ▗▄▄▖ ▗▖    ▗▄▖ ▗▖ ▗▖     ▗▄▄▖ ▗▄▖ ▗▄▄▖▗▄▄▄▖▗▄▄▄▖▗▄▖ ▗▖       ▗▄▄▄  ▗▄▄▄  ▗▄▖  ▗▄▖ 
     ▐▌ ▐▌▐▌   ▐▌ ▐▌▐▌▗▞▘    ▐▌   ▐▌ ▐▌▐▌ ▐▌ █    █ ▐▌ ▐▌▐▌       ▐▌  █▐▌ ▐▌▐▌ ▐▌
     ▐▛▀▚▖▐▌   ▐▌ ▐▌▐▛▚▖     ▐▌   ▐▛▀▜▌▐▛▀▘  █    █ ▐▛▀▜▌▐▌       ▐▌  █▐▛▀▜▌▐▌ ▐▌
     ▐▙▄▞▘▐▙▄▄▖▝▚▄▞▘▐▌ ▐▌    ▝▚▄▄▖▐▌ ▐▌▐▌  ▗▄█▄▖  █ ▐▌ ▐▌▐▙▄▄▖    ▐▙▄▄▀▐▌ ▐▌▝▚▄▞▘
@@ -17,77 +17,85 @@ pragma solidity ^0.8.20;
 
 ################################################################################*/
 
-// OpenZeppelin Contracts
+import {Facet} from "../Facet.sol";
+import {StreamYieldStorage} from "./StreamYieldStorage.sol";
+import {StreamYieldBase} from "./StreamYieldBase.sol";
+import {IStreamYield} from "./IStreamYield.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-// Local Interfaces
-import {IStreamYield} from "src/facets/utilityFacets/IStreamYield.sol";
+contract StreamYieldFacet is Facet, StreamYieldBase, IStreamYield {
+    event Deposit(address indexed user, address indexed token, uint256 amount);
+    event Withdraw(address indexed user, address indexed token, uint256 amount);
+    event LockSet(address indexed user, address indexed token, uint256 expiry);
 
-// Local Contracts
-import {StreamYieldBase} from "src/facets/utilityFacets/StreamYieldBase.sol";
-import {Facet} from "src/facets/Facet.sol";
+    function deposit(address token, uint256 amount, uint256 aprBps) external nonReentrant {
+        require(token != address(0), "Invalid token");
+        require(amount > 0, "Amount must be greater than 0");
 
-// ============================================================================
-// StreamYieldFacet
-// ============================================================================
+        IERC20(token).transferFrom(msg.sender, address(this), amount);
 
-contract StreamYieldFacet is StreamYieldBase, Facet {
-    using SafeERC20 for IERC20;
+        StreamYieldStorage.Stream storage s = StreamYieldStorage.layout().streams[msg.sender][token];
 
-    // ========================================================================
-    // External Functions (View)
-    // ========================================================================
+        if (s.lastUpdated != 0) {
+            _applyYield(s);
+        }
 
-    /// @notice Gets the current balance including accrued yield for a user
-    /// @param user The user address
-    /// @param token The token address
-    /// @return principal The principal amount deposited
-    /// @return accruedYield The total accrued yield
-    /// @return totalBalance The total balance (principal + yield)
-    function getBalance(address user, address token)
-        external
-        view
-        returns (uint256 principal, uint256 accruedYield, uint256 totalBalance)
-    {
-        return _getBalance(user, token);
+        s.principal += amount;
+
+        if (s.lastUpdated == 0) {
+            s.lastUpdated = block.timestamp;
+        }
+
+        if (s.aprBps == 0) {
+            s.aprBps = aprBps;
+        }
+
+        emit Deposit(msg.sender, token, amount);
     }
 
-    /// @notice Gets the current APR
-    /// @return The APR in basis points
-    function getAPR() external view returns (uint256) {
-        return _getAPR();
-    }
-
-    // ========================================================================
-    // External Functions (State-Changing)
-    // ========================================================================
-
-    /// @notice Deposits tokens into the yield-streaming system
-    /// @param token The ERC20 token address to deposit
-    /// @param amount Amount of tokens to deposit
-    function deposit(address token, uint256 amount) external nonReentrant {
-        _deposit(msg.sender, token, amount);
-    }
-
-    /// @notice Withdraws tokens and accrued yield from the system
-    /// @param token The ERC20 token address to withdraw
-    /// @param amount Amount of principal to withdraw
     function withdraw(address token, uint256 amount) external nonReentrant {
-        _withdraw(msg.sender, token, amount);
+        require(token != address(0), "Invalid token");
+        require(amount > 0, "Amount must be greater than 0");
+
+        StreamYieldStorage.Stream storage s = StreamYieldStorage.layout().streams[msg.sender][token];
+
+        _applyYield(s);
+
+        require(s.principal >= amount, "Insufficient balance");
+
+        if (s.locked && block.timestamp < s.lockExpiry) {
+            revert("Deposit is locked");
+        }
+
+        s.principal -= amount;
+
+        IERC20(token).transfer(msg.sender, amount);
+
+        emit Withdraw(msg.sender, token, amount);
     }
 
-    /// @notice Sets a lock on the user's deposit
-    /// @param token The token address
-    /// @param lockDuration Duration in seconds to lock the deposit
-    function setLock(address token, uint256 lockDuration) external nonReentrant {
-        _setLock(msg.sender, token, lockDuration);
+    function getBalance(address user, address token) external view returns (uint256) {
+        StreamYieldStorage.Stream storage s = StreamYieldStorage.layout().streams[user][token];
+        return s.principal + _accruedSince(s);
     }
 
-    /// @notice Sets the APR for yield accrual (owner only)
-    /// @param aprBasisPoints The APR in basis points (e.g., 500 = 5%)
-    function setAPR(uint256 aprBasisPoints) external onlyDiamondOwner nonReentrant {
-        _setAPR(aprBasisPoints);
+    function setLock(address token, uint256 durationSeconds) external nonReentrant {
+        require(token != address(0), "Invalid token");
+        require(durationSeconds > 0, "Duration must be greater than 0");
+
+        StreamYieldStorage.Stream storage s = StreamYieldStorage.layout().streams[msg.sender][token];
+
+        s.locked = true;
+        s.lockExpiry = block.timestamp + durationSeconds;
+
+        emit LockSet(msg.sender, token, s.lockExpiry);
+    }
+
+    function setApr(address token, uint256 aprBps) external nonReentrant {
+        require(token != address(0), "Invalid token");
+
+        StreamYieldStorage.Stream storage s = StreamYieldStorage.layout().streams[msg.sender][token];
+
+        s.aprBps = aprBps;
     }
 }
-
