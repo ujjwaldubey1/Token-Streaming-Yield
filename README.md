@@ -5,7 +5,7 @@
 [![Deployed](https://img.shields.io/badge/Deployed-Arbitrum%20Mainnet-blue)](https://arbiscan.io/address/0x66848f49E86b3DB7CC174EB4B32783591B08aEeD)
 [![Tests](https://img.shields.io/badge/Tests-9%2F9%20Passing-green)](test/StreamYieldFacetTest.t.sol)
 [![Verified](https://img.shields.io/badge/Verified-Arbiscan-success)](https://arbiscan.io/address/0x66848f49E86b3DB7CC174EB4B32783591B08aEeD)
-[![Frontend](https://img.shields.io/badge/Frontend-Live-purple)](https://token-streaming-yield.vercel.app)
+[![Frontend](https://img.shields.io/badge/Frontend-Live-purple)](https://token-streaming-yield-27h2.vercel.app/)
 
 ---
 
