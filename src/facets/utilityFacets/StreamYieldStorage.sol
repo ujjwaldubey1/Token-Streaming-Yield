@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: MIT License
-pragma solidity >=0.8.20;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 
 /*###############################################################################
 
@@ -17,34 +17,24 @@ pragma solidity >=0.8.20;
 ################################################################################*/
 
 library StreamYieldStorage {
-    /// @notice Fixed storage slot for StreamYield persistent state.
-    bytes32 internal constant STREAM_YIELD_STORAGE_POSITION = keccak256("stream.yield.storage");
+    bytes32 constant STORAGE_POSITION = keccak256("com.blokathon.streamyield.storage");
 
-    /// @notice User deposit information
-    struct UserDeposit {
+    struct Stream {
         uint256 principal;
-        uint256 lastUpdateTime;
-        uint256 accruedYield;
+        uint256 lastUpdated;
+        uint256 aprBps;
+        bool locked;
         uint256 lockExpiry;
     }
 
-    /// @notice Layout for the StreamYieldStorage
     struct Layout {
-        /// @notice Mapping from user address to token address to deposit info
-        mapping(address => mapping(address => UserDeposit)) deposits;
-        /// @notice APR in basis points (e.g., 500 = 5%)
-        uint256 aprBasisPoints;
-        /// @notice Total deposits per token
-        mapping(address => uint256) totalDeposits;
+        mapping(address => mapping(address => Stream)) streams;
     }
 
-    /// @notice Returns a pointer to the StreamYield storage layout
-    /// @return l Storage pointer to the StreamYield Storage struct
     function layout() internal pure returns (Layout storage l) {
-        bytes32 position = STREAM_YIELD_STORAGE_POSITION;
+        bytes32 pos = STORAGE_POSITION;
         assembly {
-            l.slot := position
+            l.slot := pos
         }
     }
 }
-
