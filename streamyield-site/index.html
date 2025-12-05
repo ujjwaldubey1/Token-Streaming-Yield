@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STREAMYIELD | Arbitrum</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --neon-cyan: #00f3ff;
+            --neon-magenta: #ff00ff;
+            --neon-green: #00ff41;
+            --neon-purple: #b026ff;
+            --neon-orange: #ff6b35;
+            --dark-bg: #0a0a0f;
+            --dark-card: #111119;
+            --dark-border: #1a1a2e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0b0;
+        }
+
+        @font-face {
+            font-family: 'Orbitron';
+            src: url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        }
+
+        body {
+            font-family: 'Orbitron', 'Courier New', monospace;
+            background: var(--dark-bg);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Animated Grid Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(cyan 1px, transparent 1px),
+                linear-gradient(90deg, cyan 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.05;
+            animation: grid-move 20s linear infinite;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        @keyframes grid-move {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        /* Neon Glow Animations */
+        @keyframes pulse-glow {
+            0%, 100% { 
+                box-shadow: 0 0 10px var(--neon-cyan),
+                           0 0 20px var(--neon-cyan),
+                           0 0 30px var(--neon-cyan);
+            }
+            50% { 
+                box-shadow: 0 0 20px var(--neon-cyan),
+                           0 0 40px var(--neon-cyan),
+                           0 0 60px var(--neon-cyan);
+            }
+        }
+
+        @keyframes slide-in {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 40px 20px;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 900;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta), var(--neon-cyan));
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient-shift 3s ease infinite;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 30px rgba(0, 243, 255, 0.5);
+        }
+
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            letter-spacing: 3px;
+            margin-top: 10px;
+        }
+
+        .network-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            background: rgba(0, 243, 255, 0.1);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 20px;
+            color: var(--neon-cyan);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        /* Wallet Connection */
+        .wallet-section {
+            background: var(--dark-card);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.2);
+            animation: slide-in 0.5s ease-out;
+        }
+
+        .wallet-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .wallet-address {
+            font-family: 'Courier New', monospace;
+            color: var(--neon-green);
+            font-size: 1.1rem;
+            word-break: break-all;
+        }
+
+        .balance {
+            color: var(--neon-purple);
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        /* Button Styles */
+        button {
+            font-family: 'Orbitron', monospace;
+            padding: 15px 30px;
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            background: transparent;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+            color: var(--dark-bg);
+            border: 2px solid var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.5);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.8);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--neon-magenta);
+            border: 2px solid var(--neon-magenta);
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 0 25px rgba(255, 0, 255, 0.6);
+            background: rgba(255, 0, 255, 0.1);
+        }
+
+        .btn-danger {
+            background: transparent;
+            color: var(--neon-orange);
+            border: 2px solid var(--neon-orange);
+            box-shadow: 0 0 15px rgba(255, 107, 53, 0.3);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 0 25px rgba(255, 107, 53, 0.6);
+            background: rgba(255, 107, 53, 0.1);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Card Styles */
+        .card {
+            background: var(--dark-card);
+            border: 2px solid var(--dark-border);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            animation: slide-in 0.6s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 243, 255, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .card:hover::before {
+            left: 100%;
+        }
+
+        .card:hover {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.3);
+        }
+
+        .card-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--neon-cyan);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .card-title::before {
+            content: '▸';
+            color: var(--neon-magenta);
+            font-size: 1.5rem;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            background: var(--dark-bg);
+            border: 2px solid var(--dark-border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+        }
+
+        input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.5;
+        }
+
+        /* Status Messages */
+        .status {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 700;
+            animation: slide-in 0.3s ease-out;
+        }
+
+        .status.success {
+            background: rgba(0, 255, 65, 0.1);
+            border: 2px solid var(--neon-green);
+            color: var(--neon-green);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+        }
+
+        .status.error {
+            background: rgba(255, 107, 53, 0.1);
+            border: 2px solid var(--neon-orange);
+            color: var(--neon-orange);
+            box-shadow: 0 0 15px rgba(255, 107, 53, 0.3);
+        }
+
+        .status.info {
+            background: rgba(0, 243, 255, 0.1);
+            border: 2px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--neon-cyan);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Balance Display */
+        .balance-display {
+            background: rgba(176, 38, 255, 0.1);
+            border: 2px solid var(--neon-purple);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .balance-value {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--neon-purple);
+            text-shadow: 0 0 20px rgba(176, 38, 255, 0.5);
+            margin: 10px 0;
+        }
+
+        .balance-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--dark-bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--neon-cyan);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--neon-magenta);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            button {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+
+        /* Connection Status */
+        .connection-status {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .connection-status.connected {
+            background: var(--neon-green);
+            box-shadow: 0 0 10px var(--neon-green);
+        }
+
+        .connection-status.disconnected {
+            background: var(--neon-orange);
+            box-shadow: 0 0 10px var(--neon-orange);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>STREAMYIELD</h1>
+            <div class="subtitle">YIELD STREAMING PROTOCOL</div>
+            <div class="network-badge">⚡ ARBITRUM MAINNET</div>
+        </header>
+
+        <!-- Wallet Connection Section -->
+        <div class="wallet-section">
+            <div class="wallet-info">
+                <div>
+                    <div style="margin-bottom: 10px;">
+                        <span class="connection-status disconnected" id="connectionStatus"></span>
+                        <span id="walletStatus">NOT CONNECTED</span>
+                    </div>
+                    <div class="wallet-address" id="walletAddress">Connect wallet to continue...</div>
+                    <div class="balance" id="walletBalance"></div>
+                </div>
+                <button class="btn-primary" id="connectBtn" onclick="connectWallet()">
+                    CONNECT WALLET
+                </button>
+            </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="statusContainer"></div>
+
+        <!-- Main Grid -->
+        <div class="grid">
+            <!-- Deposit Card -->
+            <div class="card">
+                <div class="card-title">DEPOSIT</div>
+                <div class="form-group">
+                    <label>Token Address</label>
+                    <input type="text" id="depositToken" placeholder="0xaf88d065e77c8cC2239327C5EDb3A432268e5831 (USDC)" />
+                </div>
+                <div class="form-group">
+                    <label>Amount in WEI (USDC: 1000000 = 1 USDC | ETH: 1000000000000000000 = 1 ETH)</label>
+                    <input type="text" id="depositAmount" placeholder="1000000" />
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 5px;">
+                        ⚠️ USDC/USDT use 6 decimals! | DAI/ETH use 18 decimals
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>APR (Basis Points, e.g. 500 = 5%, 1000 = 10%)</label>
+                    <input type="text" id="depositApr" placeholder="500" />
+                </div>
+                <button class="btn-primary" onclick="deposit()" id="depositBtn">
+                    DEPOSIT TOKENS
+                </button>
+                <div style="font-size: 0.75rem; color: var(--neon-orange); margin-top: 15px; padding: 10px; border: 1px solid var(--neon-orange); border-radius: 5px;">
+                    💡 TIP: Start with small amounts! USDC example: 1000000 = $1
+                </div>
+            </div>
+
+            <!-- Withdraw Card -->
+            <div class="card">
+                <div class="card-title">WITHDRAW</div>
+                <div class="form-group">
+                    <label>Token Address</label>
+                    <input type="text" id="withdrawToken" placeholder="0x..." />
+                </div>
+                <div class="form-group">
+                    <label>Amount (in wei)</label>
+                    <input type="text" id="withdrawAmount" placeholder="1000000000000000000" />
+                </div>
+                <button class="btn-danger" onclick="withdraw()" id="withdrawBtn">
+                    WITHDRAW TOKENS
+                </button>
+            </div>
+
+            <!-- Check Balance Card -->
+            <div class="card">
+                <div class="card-title">CHECK BALANCE</div>
+                <div class="form-group">
+                    <label>User Address</label>
+                    <input type="text" id="balanceUser" placeholder="0x..." />
+                </div>
+                <div class="form-group">
+                    <label>Token Address</label>
+                    <input type="text" id="balanceToken" placeholder="0x..." />
+                </div>
+                <button class="btn-secondary" onclick="checkBalance()" id="balanceBtn">
+                    CHECK BALANCE
+                </button>
+                <div id="balanceDisplay"></div>
+            </div>
+
+            <!-- Set Lock Card -->
+            <div class="card">
+                <div class="card-title">SET LOCK</div>
+                <div class="form-group">
+                    <label>Token Address</label>
+                    <input type="text" id="lockToken" placeholder="0x..." />
+                </div>
+                <div class="form-group">
+                    <label>Duration (seconds, e.g. 2592000 = 30 days)</label>
+                    <input type="text" id="lockDuration" placeholder="2592000" />
+                </div>
+                <button class="btn-secondary" onclick="setLock()" id="lockBtn">
+                    SET LOCK
+                </button>
+            </div>
+
+            <!-- Set APR Card -->
+            <div class="card">
+                <div class="card-title">UPDATE APR</div>
+                <div class="form-group">
+                    <label>Token Address</label>
+                    <input type="text" id="aprToken" placeholder="0x..." />
+                </div>
+                <div class="form-group">
+                    <label>New APR (Basis Points)</label>
+                    <input type="text" id="aprValue" placeholder="1000" />
+                </div>
+                <button class="btn-secondary" onclick="setApr()" id="aprBtn">
+                    UPDATE APR
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Contract Configuration
+        const DIAMOND_ADDRESS = '0x66848f49E86b3DB7CC174EB4B32783591B08aEeD';
+        const RPC_URL = 'https://arb1.arbitrum.io/rpc';
+        
+        // ABI - Only the functions we need
+        const DIAMOND_ABI = [
+            'function deposit(address token, uint256 amount, uint256 aprBps)',
+            'function withdraw(address token, uint256 amount)',
+            'function getBalance(address user, address token) view returns (uint256)',
+            'function setLock(address token, uint256 durationSeconds)',
+            'function setApr(address token, uint256 aprBps)'
+        ];
+
+        let provider, signer, diamond, userAddress;
+
+        // Check if ethers.js loaded
+        function checkEthersLoaded() {
+            if (typeof ethers === 'undefined') {
+                showStatus('Loading ethers.js library... Please wait.', 'info');
+                setTimeout(checkEthersLoaded, 500);
+                return false;
+            }
+            return true;
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', async () => {
+            if (!checkEthersLoaded()) {
+                setTimeout(() => {
+                    if (typeof ethers === 'undefined') {
+                        showStatus('Failed to load ethers.js. Please refresh the page or check your internet connection.', 'error');
+                    }
+                }, 5000);
+                return;
+            }
+
+            if (typeof window.ethereum !== 'undefined') {
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                checkConnection();
+            } else {
+                showStatus('Please install MetaMask to use this dApp!', 'error');
+            }
+        });
+
+        // Check if already connected
+        async function checkConnection() {
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                if (accounts.length > 0) {
+                    await connectWallet();
+                }
+            } catch (error) {
+                console.error('Connection check failed:', error);
+            }
+        }
+
+        // Connect Wallet
+        async function connectWallet() {
+            try {
+                if (typeof ethers === 'undefined') {
+                    showStatus('Ethers.js library not loaded yet. Please wait a moment and try again.', 'error');
+                    return;
+                }
+
+                if (!window.ethereum) {
+                    showStatus('MetaMask not found! Please install MetaMask.', 'error');
+                    return;
+                }
+
+                showStatus('Connecting to wallet...', 'info');
+                
+                // Request account access
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                userAddress = await signer.getAddress();
+
+                // Check network
+                const network = await provider.getNetwork();
+                if (network.chainId !== 42161) {
+                    showStatus(`Wrong network! Please switch to Arbitrum One (Chain ID: 42161). Current: ${network.chainId}`, 'error');
+                    
+                    // Try to switch network
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: '0xa4b1' }], // 42161 in hex
+                        });
+                        showStatus('Switched to Arbitrum! Please reconnect.', 'success');
+                        return;
+                    } catch (switchError) {
+                        // Network not added, try to add it
+                        if (switchError.code === 4902) {
+                            try {
+                                await window.ethereum.request({
+                                    method: 'wallet_addEthereumChain',
+                                    params: [{
+                                        chainId: '0xa4b1',
+                                        chainName: 'Arbitrum One',
+                                        nativeCurrency: {
+                                            name: 'Ethereum',
+                                            symbol: 'ETH',
+                                            decimals: 18
+                                        },
+                                        rpcUrls: ['https://arb1.arbitrum.io/rpc'],
+                                        blockExplorerUrls: ['https://arbiscan.io']
+                                    }]
+                                });
+                                showStatus('Arbitrum network added! Please reconnect.', 'success');
+                                return;
+                            } catch (addError) {
+                                showStatus('Failed to add Arbitrum network. Please add manually.', 'error');
+                                return;
+                            }
+                        }
+                    }
+                    return;
+                }
+                
+                // Create contract instance
+                diamond = new ethers.Contract(DIAMOND_ADDRESS, DIAMOND_ABI, signer);
+                
+                // Update UI
+                document.getElementById('walletAddress').textContent = userAddress;
+                document.getElementById('walletStatus').textContent = 'CONNECTED';
+                document.getElementById('connectionStatus').classList.add('connected');
+                document.getElementById('connectionStatus').classList.remove('disconnected');
+                document.getElementById('connectBtn').textContent = 'CONNECTED';
+                document.getElementById('connectBtn').disabled = true;
+
+                // Get balance
+                const balance = await provider.getBalance(userAddress);
+                const balanceEth = ethers.utils.formatEther(balance);
+                document.getElementById('walletBalance').textContent = `Balance: ${parseFloat(balanceEth).toFixed(4)} ETH`;
+
+                // Set default user address in balance check
+                document.getElementById('balanceUser').value = userAddress;
+
+                showStatus('Wallet connected successfully!', 'success');
+            } catch (error) {
+                console.error('Connection error:', error);
+                showStatus('Failed to connect wallet: ' + error.message, 'error');
+            }
+        }
+
+        // Deposit Function
+        async function deposit() {
+            if (!signer) {
+                showStatus('Please connect your wallet first!', 'error');
+                return;
+            }
+
+            try {
+                const tokenAddress = document.getElementById('depositToken').value.trim();
+                const amount = document.getElementById('depositAmount').value.trim();
+                const aprBps = document.getElementById('depositApr').value.trim();
+
+                if (!tokenAddress || !amount || !aprBps) {
+                    showStatus('Please fill in all fields!', 'error');
+                    return;
+                }
+
+                showStatus('Approving token spend...', 'info');
+                document.getElementById('depositBtn').disabled = true;
+                document.getElementById('depositBtn').innerHTML = '<span class="loading"></span> APPROVING...';
+
+                // First, approve the Diamond to spend tokens
+                const tokenABI = ['function approve(address spender, uint256 amount)'];
+                const tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
+                
+                const approveTx = await tokenContract.approve(DIAMOND_ADDRESS, amount);
+                await approveTx.wait();
+
+                showStatus('Token approved! Now depositing...', 'info');
+                document.getElementById('depositBtn').innerHTML = '<span class="loading"></span> DEPOSITING...';
+
+                // Now deposit
+                const tx = await diamond.deposit(tokenAddress, amount, aprBps);
+                showStatus(`Transaction sent! Hash: ${tx.hash}`, 'info');
+                
+                const receipt = await tx.wait();
+                showStatus(`Deposit successful! Gas used: ${receipt.gasUsed.toString()}`, 'success');
+
+                // Reset button
+                document.getElementById('depositBtn').disabled = false;
+                document.getElementById('depositBtn').textContent = 'DEPOSIT TOKENS';
+
+                // Clear form
+                document.getElementById('depositAmount').value = '';
+            } catch (error) {
+                console.error('Deposit error:', error);
+                showStatus('Deposit failed: ' + (error.reason || error.message), 'error');
+                document.getElementById('depositBtn').disabled = false;
+                document.getElementById('depositBtn').textContent = 'DEPOSIT TOKENS';
+            }
+        }
+
+        // Withdraw Function
+        async function withdraw() {
+            if (!signer) {
+                showStatus('Please connect your wallet first!', 'error');
+                return;
+            }
+
+            try {
+                const tokenAddress = document.getElementById('withdrawToken').value.trim();
+                const amount = document.getElementById('withdrawAmount').value.trim();
+
+                if (!tokenAddress || !amount) {
+                    showStatus('Please fill in all fields!', 'error');
+                    return;
+                }
+
+                showStatus('Processing withdrawal...', 'info');
+                document.getElementById('withdrawBtn').disabled = true;
+                document.getElementById('withdrawBtn').innerHTML = '<span class="loading"></span> WITHDRAWING...';
+
+                const tx = await diamond.withdraw(tokenAddress, amount);
+                showStatus(`Transaction sent! Hash: ${tx.hash}`, 'info');
+                
+                const receipt = await tx.wait();
+                showStatus(`Withdrawal successful! Gas used: ${receipt.gasUsed.toString()}`, 'success');
+
+                document.getElementById('withdrawBtn').disabled = false;
+                document.getElementById('withdrawBtn').textContent = 'WITHDRAW TOKENS';
+                document.getElementById('withdrawAmount').value = '';
+            } catch (error) {
+                console.error('Withdraw error:', error);
+                showStatus('Withdrawal failed: ' + (error.reason || error.message), 'error');
+                document.getElementById('withdrawBtn').disabled = false;
+                document.getElementById('withdrawBtn').textContent = 'WITHDRAW TOKENS';
+            }
+        }
+
+        // Check Balance Function
+        async function checkBalance() {
+            try {
+                const userAddress = document.getElementById('balanceUser').value.trim();
+                const tokenAddress = document.getElementById('balanceToken').value.trim();
+
+                if (!userAddress || !tokenAddress) {
+                    showStatus('Please fill in all fields!', 'error');
+                    return;
+                }
+
+                // Validate addresses
+                if (!ethers.utils.isAddress(userAddress)) {
+                    showStatus('Invalid user address format!', 'error');
+                    return;
+                }
+                if (!ethers.utils.isAddress(tokenAddress)) {
+                    showStatus('Invalid token address format!', 'error');
+                    return;
+                }
+
+                document.getElementById('balanceBtn').disabled = true;
+                document.getElementById('balanceBtn').innerHTML = '<span class="loading"></span> CHECKING...';
+
+                // Use provider (doesn't need signer for view functions)
+                if (!provider) {
+                    provider = new ethers.providers.JsonRpcProvider(RPC_URL);
+                }
+                
+                // Check network
+                const network = await provider.getNetwork();
+                if (network.chainId !== 42161) {
+                    showStatus(`Error: Connected to wrong network (Chain ID: ${network.chainId}). Please switch to Arbitrum (42161).`, 'error');
+                    document.getElementById('balanceBtn').disabled = false;
+                    document.getElementById('balanceBtn').textContent = 'CHECK BALANCE';
+                    return;
+                }
+
+                const diamondReadOnly = new ethers.Contract(DIAMOND_ADDRESS, DIAMOND_ABI, provider);
+                
+                // Check if contract exists
+                const code = await provider.getCode(DIAMOND_ADDRESS);
+                if (code === '0x') {
+                    showStatus('Error: Diamond contract not found on this network. Are you on Arbitrum mainnet?', 'error');
+                    document.getElementById('balanceBtn').disabled = false;
+                    document.getElementById('balanceBtn').textContent = 'CHECK BALANCE';
+                    return;
+                }
+
+                const balance = await diamondReadOnly.getBalance(userAddress, tokenAddress);
+                const balanceFormatted = ethers.utils.formatEther(balance);
+
+                document.getElementById('balanceDisplay').innerHTML = `
+                    <div class="balance-display">
+                        <div class="balance-label">TOTAL BALANCE</div>
+                        <div class="balance-value">${parseFloat(balanceFormatted).toFixed(6)}</div>
+                        <div class="balance-label">(Principal + Accrued Yield)</div>
+                        <div class="balance-label" style="margin-top: 10px; font-size: 0.7rem;">
+                            Raw: ${balance.toString()} wei
+                        </div>
+                    </div>
+                `;
+
+                if (balance.isZero()) {
+                    showStatus('Balance is 0 - No deposits found for this user/token combination.', 'info');
+                } else {
+                    showStatus('Balance retrieved successfully!', 'success');
+                }
+
+                document.getElementById('balanceBtn').disabled = false;
+                document.getElementById('balanceBtn').textContent = 'CHECK BALANCE';
+            } catch (error) {
+                console.error('Balance check error:', error);
+                let errorMsg = 'Failed to check balance: ';
+                
+                if (error.code === 'CALL_EXCEPTION') {
+                    errorMsg += 'Contract call failed. This could mean:\n' +
+                               '1. You are on the wrong network (need Arbitrum mainnet)\n' +
+                               '2. The contract address is incorrect\n' +
+                               '3. The function does not exist on this contract';
+                } else {
+                    errorMsg += (error.reason || error.message);
+                }
+                
+                showStatus(errorMsg, 'error');
+                document.getElementById('balanceBtn').disabled = false;
+                document.getElementById('balanceBtn').textContent = 'CHECK BALANCE';
+            }
+        }
+
+        // Set Lock Function
+        async function setLock() {
+            if (!signer) {
+                showStatus('Please connect your wallet first!', 'error');
+                return;
+            }
+
+            try {
+                const tokenAddress = document.getElementById('lockToken').value.trim();
+                const duration = document.getElementById('lockDuration').value.trim();
+
+                if (!tokenAddress || !duration) {
+                    showStatus('Please fill in all fields!', 'error');
+                    return;
+                }
+
+                document.getElementById('lockBtn').disabled = true;
+                document.getElementById('lockBtn').innerHTML = '<span class="loading"></span> SETTING LOCK...';
+
+                const tx = await diamond.setLock(tokenAddress, duration);
+                showStatus(`Transaction sent! Hash: ${tx.hash}`, 'info');
+                
+                const receipt = await tx.wait();
+                showStatus(`Lock set successfully! Duration: ${duration} seconds`, 'success');
+
+                document.getElementById('lockBtn').disabled = false;
+                document.getElementById('lockBtn').textContent = 'SET LOCK';
+            } catch (error) {
+                console.error('Set lock error:', error);
+                showStatus('Failed to set lock: ' + (error.reason || error.message), 'error');
+                document.getElementById('lockBtn').disabled = false;
+                document.getElementById('lockBtn').textContent = 'SET LOCK';
+            }
+        }
+
+        // Set APR Function
+        async function setApr() {
+            if (!signer) {
+                showStatus('Please connect your wallet first!', 'error');
+                return;
+            }
+
+            try {
+                const tokenAddress = document.getElementById('aprToken').value.trim();
+                const aprBps = document.getElementById('aprValue').value.trim();
+
+                if (!tokenAddress || !aprBps) {
+                    showStatus('Please fill in all fields!', 'error');
+                    return;
+                }
+
+                document.getElementById('aprBtn').disabled = true;
+                document.getElementById('aprBtn').innerHTML = '<span class="loading"></span> UPDATING APR...';
+
+                const tx = await diamond.setApr(tokenAddress, aprBps);
+                showStatus(`Transaction sent! Hash: ${tx.hash}`, 'info');
+                
+                const receipt = await tx.wait();
+                showStatus(`APR updated successfully! New APR: ${aprBps} basis points (${aprBps / 100}%)`, 'success');
+
+                document.getElementById('aprBtn').disabled = false;
+                document.getElementById('aprBtn').textContent = 'UPDATE APR';
+            } catch (error) {
+                console.error('Set APR error:', error);
+                showStatus('Failed to update APR: ' + (error.reason || error.message), 'error');
+                document.getElementById('aprBtn').disabled = false;
+                document.getElementById('aprBtn').textContent = 'UPDATE APR';
+            }
+        }
+
+        // Show Status Message
+        function showStatus(message, type = 'info') {
+            const container = document.getElementById('statusContainer');
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+            
+            container.innerHTML = '';
+            container.appendChild(statusDiv);
+
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                statusDiv.remove();
+            }, 5000);
+        }
+
+        // Listen for account changes
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    // User disconnected
+                    location.reload();
+                } else {
+                    connectWallet();
+                }
+            });
+
+            window.ethereum.on('chainChanged', () => {
+                location.reload();
+            });
+        }
+    </script>
+</body>
+</html>
+
